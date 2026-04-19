@@ -1,0 +1,68 @@
+services:
+  # ======== PRIVATE SERVICES (Go Microservices) ========
+  - type: pserv
+    name: user-service
+    env: docker
+    dockerfilePath: services/user-service/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: "50051"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  - type: pserv
+    name: group-service
+    env: docker
+    dockerfilePath: services/group-service/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: "50052"
+      - key: DATABASE_URL
+        sync: false
+
+  - type: pserv
+    name: expense-service
+    env: docker
+    dockerfilePath: services/expense-service/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: "50053"
+      - key: DATABASE_URL
+        sync: false
+
+  - type: pserv
+    name: settlement-service
+    env: docker
+    dockerfilePath: services/settlement-service/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: "50054"
+      - key: DATABASE_URL
+        sync: false
+
+  # ======== WEB SERVICE (Apollo Gateway) ========
+  - type: web
+    name: split-gateway
+    env: docker
+    dockerfilePath: gateway/Dockerfile
+    dockerContext: .
+    autoDeploy: false # Prevent auto-deploy until env vars are set
+    envVars:
+      - key: USER_SERVICE_URL
+        value: "user-service:50051"
+      - key: GROUP_SERVICE_URL
+        value: "group-service:50052"
+      - key: EXPENSE_SERVICE_URL
+        value: "expense-service:50053"
+      - key: SETTLEMENT_SERVICE_URL
+        value: "settlement-service:50054"
+      - key: CORS_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        sync: false

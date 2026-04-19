@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package expense;
+
+option go_package = "github.com/split/services/expense-service/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Enums ─────────────────────────────────────────────────────
+
+enum SplitType {
+  SPLIT_TYPE_UNSPECIFIED = 0;
+  SPLIT_TYPE_EQUAL = 1;
+  SPLIT_TYPE_CUSTOM = 2;
+  SPLIT_TYPE_PERCENTAGE = 3;
+}
+
+// ─── Messages ──────────────────────────────────────────────────
+
+message ExpenseSplit {
+  string id = 1;
+  string expense_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  double percentage = 5;
+}
+
+message Expense {
+  string id = 1;
+  string group_id = 2;
+  string payer_id = 3;
+  double amount = 4;
+  string description = 5;
+  SplitType split_type = 6;
+  repeated ExpenseSplit splits = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// CreateExpense
+message CreateExpenseRequest {
+  string group_id = 1;
+  string payer_id = 2;
+  double amount = 3;
+  string description = 4;
+  SplitType split_type = 5;
+  repeated ExpenseSplitInput splits = 6;
+}
+
+message ExpenseSplitInput {
+  string user_id = 1;
+  double amount = 2;     // used for CUSTOM split
+  double percentage = 3;  // used for PERCENTAGE split
+}
+
+message CreateExpenseResponse {
+  Expense expense = 1;
+}
+
+// GetExpense
+message GetExpenseRequest {
+  string id = 1;
+}
+
+message GetExpenseResponse {
+  Expense expense = 1;
+}
+
+// ListGroupExpenses
+message ListGroupExpensesRequest {
+  string group_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListGroupExpensesResponse {
+  repeated Expense expenses = 1;
+  int32 total_count = 2;
+}
+
+// UpdateExpense
+message UpdateExpenseRequest {
+  string id = 1;
+  string payer_id = 2;
+  double amount = 3;
+  string description = 4;
+  SplitType split_type = 5;
+  repeated ExpenseSplitInput splits = 6;
+}
+
+message UpdateExpenseResponse {
+  Expense expense = 1;
+}
+
+// DeleteExpense
+message DeleteExpenseRequest {
+  string id = 1;
+}
+
+message DeleteExpenseResponse {
+  bool success = 1;
+}
+
+// GetGroupBalances
+message GetGroupBalancesRequest {
+  string group_id = 1;
+}
+
+message UserBalance {
+  string user_id = 1;
+  double balance = 2; // positive = owed money, negative = owes money
+}
+
+message BalanceDetail {
+  string from_user_id = 1;
+  string to_user_id = 2;
+  double amount = 3;
+}
+
+message GetGroupBalancesResponse {
+  repeated UserBalance balances = 1;
+  repeated BalanceDetail details = 2;
+}
+
+// ─── Service ───────────────────────────────────────────────────
+
+service ExpenseService {
+  rpc CreateExpense(CreateExpenseRequest) returns (CreateExpenseResponse);
+  rpc GetExpense(GetExpenseRequest) returns (GetExpenseResponse);
+  rpc ListGroupExpenses(ListGroupExpensesRequest) returns (ListGroupExpensesResponse);
+  rpc UpdateExpense(UpdateExpenseRequest) returns (UpdateExpenseResponse);
+  rpc DeleteExpense(DeleteExpenseRequest) returns (DeleteExpenseResponse);
+  rpc GetGroupBalances(GetGroupBalancesRequest) returns (GetGroupBalancesResponse);
+}

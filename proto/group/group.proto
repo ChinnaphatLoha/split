@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package group;
+
+option go_package = "github.com/split/services/group-service/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Messages ──────────────────────────────────────────────────
+
+message Group {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string currency = 4;
+  string invite_code = 5;
+  string owner_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  repeated GroupMember members = 9;
+}
+
+message GroupMember {
+  string user_id = 1;
+  string role = 2; // "owner" or "member"
+  google.protobuf.Timestamp joined_at = 3;
+}
+
+// CreateGroup
+message CreateGroupRequest {
+  string name = 1;
+  string description = 2;
+  string currency = 3;
+  string owner_id = 4;
+}
+
+message CreateGroupResponse {
+  Group group = 1;
+}
+
+// GetGroup
+message GetGroupRequest {
+  string id = 1;
+}
+
+message GetGroupResponse {
+  Group group = 1;
+}
+
+// ListUserGroups
+message ListUserGroupsRequest {
+  string user_id = 1;
+}
+
+message ListUserGroupsResponse {
+  repeated Group groups = 1;
+}
+
+// UpdateGroup
+message UpdateGroupRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string currency = 4;
+}
+
+message UpdateGroupResponse {
+  Group group = 1;
+}
+
+// DeleteGroup
+message DeleteGroupRequest {
+  string id = 1;
+  string user_id = 2; // must be owner
+}
+
+message DeleteGroupResponse {
+  bool success = 1;
+}
+
+// AddMember
+message AddMemberRequest {
+  string group_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+message AddMemberResponse {
+  Group group = 1;
+}
+
+// RemoveMember
+message RemoveMemberRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+message RemoveMemberResponse {
+  Group group = 1;
+}
+
+// GenerateInviteCode
+message GenerateInviteCodeRequest {
+  string group_id = 1;
+  string user_id = 2; // must be owner
+}
+
+message GenerateInviteCodeResponse {
+  string invite_code = 1;
+}
+
+// JoinByInviteCode
+message JoinByInviteCodeRequest {
+  string invite_code = 1;
+  string user_id = 2;
+}
+
+message JoinByInviteCodeResponse {
+  Group group = 1;
+}
+
+// ─── Service ───────────────────────────────────────────────────
+
+service GroupService {
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
+  rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse);
+  rpc UpdateGroup(UpdateGroupRequest) returns (UpdateGroupResponse);
+  rpc DeleteGroup(DeleteGroupRequest) returns (DeleteGroupResponse);
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse);
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  rpc GenerateInviteCode(GenerateInviteCodeRequest) returns (GenerateInviteCodeResponse);
+  rpc JoinByInviteCode(JoinByInviteCodeRequest) returns (JoinByInviteCodeResponse);
+}

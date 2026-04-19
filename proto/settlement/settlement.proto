@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package settlement;
+
+option go_package = "github.com/split/services/settlement-service/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Enums ─────────────────────────────────────────────────────
+
+enum SettlementStatus {
+  SETTLEMENT_STATUS_UNSPECIFIED = 0;
+  SETTLEMENT_STATUS_PENDING = 1;
+  SETTLEMENT_STATUS_COMPLETED = 2;
+}
+
+// ─── Messages ──────────────────────────────────────────────────
+
+message Settlement {
+  string id = 1;
+  string group_id = 2;
+  string from_user_id = 3;
+  string to_user_id = 4;
+  double amount = 5;
+  SettlementStatus status = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message Transaction {
+  string from_user_id = 1;
+  string to_user_id = 2;
+  double amount = 3;
+}
+
+// ComputeSettlements
+message ComputeSettlementsRequest {
+  string group_id = 1;
+  repeated BalanceEntry balances = 2;
+}
+
+message BalanceEntry {
+  string user_id = 1;
+  double amount = 2; // positive = is owed, negative = owes
+}
+
+message ComputeSettlementsResponse {
+  repeated Transaction transactions = 1;
+}
+
+// RecordSettlement
+message RecordSettlementRequest {
+  string group_id = 1;
+  string from_user_id = 2;
+  string to_user_id = 3;
+  double amount = 4;
+}
+
+message RecordSettlementResponse {
+  Settlement settlement = 1;
+}
+
+// MarkSettlementCompleted
+message MarkSettlementCompletedRequest {
+  string id = 1;
+}
+
+message MarkSettlementCompletedResponse {
+  Settlement settlement = 1;
+}
+
+// ListSettlements
+message ListSettlementsRequest {
+  string group_id = 1;
+}
+
+message ListSettlementsResponse {
+  repeated Settlement settlements = 1;
+}
+
+// ─── Service ───────────────────────────────────────────────────
+
+service SettlementService {
+  rpc ComputeSettlements(ComputeSettlementsRequest) returns (ComputeSettlementsResponse);
+  rpc RecordSettlement(RecordSettlementRequest) returns (RecordSettlementResponse);
+  rpc MarkSettlementCompleted(MarkSettlementCompletedRequest) returns (MarkSettlementCompletedResponse);
+  rpc ListSettlements(ListSettlementsRequest) returns (ListSettlementsResponse);
+}

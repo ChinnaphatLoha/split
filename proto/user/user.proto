@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/split/services/user-service/proto;proto";
+
+import "google/protobuf/timestamp.proto";
+
+// ─── Messages ──────────────────────────────────────────────────
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string avatar_url = 4;
+  string currency = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// Register
+message RegisterRequest {
+  string email = 1;
+  string name = 2;
+  string password = 3;
+  string currency = 4;
+}
+
+message RegisterResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+// Login
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+// GetUser
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+// UpdateUser
+message UpdateUserRequest {
+  string id = 1;
+  string name = 2;
+  string avatar_url = 3;
+  string currency = 4;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+// GetUsersByIds
+message GetUsersByIdsRequest {
+  repeated string ids = 1;
+}
+
+message GetUsersByIdsResponse {
+  repeated User users = 1;
+}
+
+// RefreshToken
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+// ─── Service ───────────────────────────────────────────────────
+
+service UserService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc GetUsersByIds(GetUsersByIdsRequest) returns (GetUsersByIdsResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
