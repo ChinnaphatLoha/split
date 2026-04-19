@@ -1,0 +1,6 @@
+# Caddyfile definition for automatic HTTPS
+# Uses the environment variable passed or hardcoded during startup
+{$DOMAIN_NAME} {
+    # Reverse proxy all API traffic directly to the internal Docker Container for the Gateway
+    reverse_proxy gateway:4000
+}

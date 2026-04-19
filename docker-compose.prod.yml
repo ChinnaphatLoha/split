@@ -1,0 +1,208 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL Databases ────────────────────────────────────
+  user-db:
+    image: postgres:17
+    container_name: split-user-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: user_db
+    # Removed ports directive to keep DB secure inside internal network
+    volumes:
+      - user-db-data-prod:/var/lib/postgresql/data
+    networks:
+      - split-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  group-db:
+    image: postgres:17
+    container_name: split-group-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: group_db
+    volumes:
+      - group-db-data-prod:/var/lib/postgresql/data
+    networks:
+      - split-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d group_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  expense-db:
+    image: postgres:17
+    container_name: split-expense-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: expense_db
+    volumes:
+      - expense-db-data-prod:/var/lib/postgresql/data
+    networks:
+      - split-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d expense_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  settlement-db:
+    image: postgres:17
+    container_name: split-settlement-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: settlement_db
+    volumes:
+      - settlement-db-data-prod:/var/lib/postgresql/data
+    networks:
+      - split-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d settlement_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Go Microservices ────────────────────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: split-user-service-prod
+    restart: always
+    environment:
+      DB_HOST: user-db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-split_prod}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: user_db
+      GRPC_PORT: 50051
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - split-network-prod
+
+  group-service:
+    build:
+      context: .
+      dockerfile: services/group-service/Dockerfile
+    container_name: split-group-service-prod
+    restart: always
+    environment:
+      DB_HOST: group-db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-split_prod}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: group_db
+      GRPC_PORT: 50052
+    depends_on:
+      group-db:
+        condition: service_healthy
+    networks:
+      - split-network-prod
+
+  expense-service:
+    build:
+      context: .
+      dockerfile: services/expense-service/Dockerfile
+    container_name: split-expense-service-prod
+    restart: always
+    environment:
+      DB_HOST: expense-db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-split_prod}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: expense_db
+      GRPC_PORT: 50053
+    depends_on:
+      expense-db:
+        condition: service_healthy
+    networks:
+      - split-network-prod
+
+  settlement-service:
+    build:
+      context: .
+      dockerfile: services/settlement-service/Dockerfile
+    container_name: split-settlement-service-prod
+    restart: always
+    environment:
+      DB_HOST: settlement-db
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-split_prod}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: settlement_db
+      GRPC_PORT: 50054
+    depends_on:
+      settlement-db:
+        condition: service_healthy
+    networks:
+      - split-network-prod
+
+  # ─── GraphQL API Gateway ─────────────────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: split-gateway-prod
+    restart: always
+    environment:
+      PORT: 4000
+      USER_SERVICE_URL: user-service:50051
+      GROUP_SERVICE_URL: group-service:50052
+      EXPENSE_SERVICE_URL: expense-service:50053
+      SETTLEMENT_SERVICE_URL: settlement-service:50054
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${FRONTEND_URL}
+    depends_on:
+      - user-service
+      - group-service
+      - expense-service
+      - settlement-service
+    networks:
+      - split-network-prod
+
+  # ─── Caddy Reverse Proxy (Exposes Gateway via HTTPS) ─────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: split-caddy
+    restart: always
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - gateway
+    networks:
+      - split-network-prod
+
+volumes:
+  user-db-data-prod:
+  group-db-data-prod:
+  expense-db-data-prod:
+  settlement-db-data-prod:
+  caddy_data:
+  caddy_config:
+
+networks:
+  split-network-prod:
+    driver: bridge
