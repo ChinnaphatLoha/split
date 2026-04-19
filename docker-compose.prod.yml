@@ -1,80 +1,6 @@
 version: "3.9"
 
 services:
-  # ─── PostgreSQL Databases ────────────────────────────────────
-  user-db:
-    image: postgres:17
-    container_name: split-user-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: user_db
-    # Removed ports directive to keep DB secure inside internal network
-    volumes:
-      - user-db-data-prod:/var/lib/postgresql/data
-    networks:
-      - split-network-prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d user_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  group-db:
-    image: postgres:17
-    container_name: split-group-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: group_db
-    volumes:
-      - group-db-data-prod:/var/lib/postgresql/data
-    networks:
-      - split-network-prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d group_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  expense-db:
-    image: postgres:17
-    container_name: split-expense-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: expense_db
-    volumes:
-      - expense-db-data-prod:/var/lib/postgresql/data
-    networks:
-      - split-network-prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d expense_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  settlement-db:
-    image: postgres:17
-    container_name: split-settlement-db-prod
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-split_prod}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: settlement_db
-    volumes:
-      - settlement-db-data-prod:/var/lib/postgresql/data
-    networks:
-      - split-network-prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-split_prod} -d settlement_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ─── Go Microservices ────────────────────────────────────────
   user-service:
     build:
@@ -83,16 +9,9 @@ services:
     container_name: split-user-service-prod
     restart: always
     environment:
-      DB_HOST: user-db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-split_prod}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: user_db
+      DATABASE_URL: ${USER_DB_URL}
       GRPC_PORT: 50051
       JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      user-db:
-        condition: service_healthy
     networks:
       - split-network-prod
 
@@ -103,15 +22,8 @@ services:
     container_name: split-group-service-prod
     restart: always
     environment:
-      DB_HOST: group-db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-split_prod}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: group_db
+      DATABASE_URL: ${GROUP_DB_URL}
       GRPC_PORT: 50052
-    depends_on:
-      group-db:
-        condition: service_healthy
     networks:
       - split-network-prod
 
@@ -122,15 +34,8 @@ services:
     container_name: split-expense-service-prod
     restart: always
     environment:
-      DB_HOST: expense-db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-split_prod}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: expense_db
+      DATABASE_URL: ${EXPENSE_DB_URL}
       GRPC_PORT: 50053
-    depends_on:
-      expense-db:
-        condition: service_healthy
     networks:
       - split-network-prod
 
@@ -141,15 +46,8 @@ services:
     container_name: split-settlement-service-prod
     restart: always
     environment:
-      DB_HOST: settlement-db
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-split_prod}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: settlement_db
+      DATABASE_URL: ${SETTLEMENT_DB_URL}
       GRPC_PORT: 50054
-    depends_on:
-      settlement-db:
-        condition: service_healthy
     networks:
       - split-network-prod
 
@@ -196,10 +94,6 @@ services:
       - split-network-prod
 
 volumes:
-  user-db-data-prod:
-  group-db-data-prod:
-  expense-db-data-prod:
-  settlement-db-data-prod:
   caddy_data:
   caddy_config:
 
